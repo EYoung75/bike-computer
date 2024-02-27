@@ -1,0 +1,149 @@
+previous_crank_event_time  0
+previous_cumulative_crank_revolutions None
+last_crank_event_time 256
+cumulative_crank_revolutions 247
+DELTA TIME  0.2509766
+delta_time 0.2509766
+previous_crank_event_time  256
+previous_cumulative_crank_revolutions 247
+last_crank_event_time 513
+cumulative_crank_revolutions 31139
+DELTA TIME  0.2519531
+delta_time 0.2519531
+previous_crank_event_time  513
+previous_cumulative_crank_revolutions 31139
+last_crank_event_time 771
+cumulative_crank_revolutions 31228
+DELTA TIME  0.2509766
+delta_time 0.2509766
+previous_crank_event_time  771
+previous_cumulative_crank_revolutions 31228
+last_crank_event_time 1028
+cumulative_crank_revolutions 27152
+DELTA TIME  0.2509766
+delta_time 0.2509766
+previous_crank_event_time  1028
+previous_cumulative_crank_revolutions 27152
+last_crank_event_time 1285
+cumulative_crank_revolutions 57763
+DELTA TIME  0.2519531
+delta_time 0.2519531
+previous_crank_event_time  1285
+previous_cumulative_crank_revolutions 57763
+last_crank_event_time 1543
+cumulative_crank_revolutions 31
+DELTA TIME  0.2509766
+delta_time 0.2509766
+previous_crank_event_time  1543
+previous_cumulative_crank_revolutions 31
+last_crank_event_time 1800
+cumulative_crank_revolutions 32191
+DELTA TIME  0.2509766
+delta_time 0.2509766
+previous_crank_event_time  1800
+previous_cumulative_crank_revolutions 32191
+last_crank_event_time 2057
+cumulative_crank_revolutions 49694
+DELTA TIME  0.2519531
+delta_time 0.2519531
+previous_crank_event_time  2057
+previous_cumulative_crank_revolutions 49694
+last_crank_event_time 2315
+cumulative_crank_revolutions 7962
+DELTA TIME  0.2509766
+delta_time 0.2509766
+previous_crank_event_time  2315
+previous_cumulative_crank_revolutions 7962
+last_crank_event_time 2572
+cumulative_crank_revolutions 27922
+DELTA TIME  0.2509766
+delta_time 0.2509766
+previous_crank_event_time  2572
+previous_cumulative_crank_revolutions 27922
+last_crank_event_time 2829
+cumulative_crank_revolutions 31663
+
+
+
+previous_crank_event_time  0
+previous_crank_event_time  256
+previous_crank_event_time  513
+previous_crank_event_time  771
+previous_crank_event_time  1028
+previous_crank_event_time  1285
+previous_crank_event_time  1543
+previous_crank_event_time  1800
+previous_crank_event_time  2057
+previous_crank_event_time  2315
+previous_crank_event_time  2572
+
+
+
+previous_cumulative_crank_revolutions None
+previous_cumulative_crank_revolutions 247
+previous_cumulative_crank_revolutions 31139
+previous_cumulative_crank_revolutions 31228
+previous_cumulative_crank_revolutions 27152
+previous_cumulative_crank_revolutions 57763
+previous_cumulative_crank_revolutions 31
+previous_cumulative_crank_revolutions 32191
+previous_cumulative_crank_revolutions 49694
+previous_cumulative_crank_revolutions 7962
+previous_cumulative_crank_revolutions 27922
+
+
+
+last_crank_event_time 256
+last_crank_event_time 513
+last_crank_event_time 771
+last_crank_event_time 1028
+last_crank_event_time 1285
+last_crank_event_time 1543
+last_crank_event_time 1800
+last_crank_event_time 2057
+last_crank_event_time 2315
+last_crank_event_time 2572
+last_crank_event_time 2829
+
+
+
+cumulative_crank_revolutions 247
+cumulative_crank_revolutions 31139
+cumulative_crank_revolutions 31228
+cumulative_crank_revolutions 27152
+cumulative_crank_revolutions 57763
+cumulative_crank_revolutions 31
+cumulative_crank_revolutions 32191
+cumulative_crank_revolutions 49694
+cumulative_crank_revolutions 7962
+cumulative_crank_revolutions 27922
+cumulative_crank_revolutions 31663
+
+
+
+
+
+
+
+
+
+DELTA TIME  0.2509766
+delta_time 0.2509766
+DELTA TIME  0.2519531
+delta_time 0.2519531
+DELTA TIME  0.2509766
+delta_time 0.2509766
+DELTA TIME  0.2509766
+delta_time 0.2509766
+DELTA TIME  0.2519531
+delta_time 0.2519531
+DELTA TIME  0.2509766
+delta_time 0.2509766
+DELTA TIME  0.2509766
+delta_time 0.2509766
+DELTA TIME  0.2519531
+delta_time 0.2519531
+DELTA TIME  0.2509766
+delta_time 0.2509766
+DELTA TIME  0.2509766
+delta_time 0.2509766

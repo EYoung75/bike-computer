@@ -1,0 +1,8 @@
+ On entry or startup, there should just be a scrollable main menu with options 
+like "ride", "workout", "Pair", "history" etc... on select button press, there should be different behavior depending
+ on the selected option. For instance, if the "ride" option is chosen, there should be a prompt on the display 
+ like "Press any button to start" at which point a timer would start and power and cadence data being transmitted 
+ from a power meter should be displayed. In this screen as well, the different buttons (there is a left, 
+ center, and right button by the way) should trigger different behaviors. the center button should pause the ride, 
+ at which point the timer should flash. Pressing the center button again here will resume the ride. 
+ If the right button is pressed, the screen should just cycle through different data displays. 
