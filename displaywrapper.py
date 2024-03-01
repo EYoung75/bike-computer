@@ -6,7 +6,8 @@ import basefont
 from machine import Pin, SPI
 
 cs = Pin(13, Pin.OUT)
-reset = Pin(16, Pin.OUT)
+# 16 on breadboard, 18 on prototype
+reset = Pin(18, Pin.OUT)
 dc = Pin(12, Pin.OUT)
 display_spi = SPI(1, baudrate=60000000, sck=Pin(10), mosi=Pin(11))
 

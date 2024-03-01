@@ -6,6 +6,7 @@ import struct
 from machine import Pin, SPI
 import time
 import sdcard
+import filesystem
 import os
 import ubinascii
 import math
@@ -16,41 +17,95 @@ import displaywrapper
 display = displaywrapper.DisplayWrapper()
 
 # Breadboard buttons
-left = Pin(22, Pin.IN, Pin.PULL_UP)
-center = Pin(21, Pin.IN, Pin.PULL_UP)
-right = Pin(20, Pin.IN, Pin.PULL_UP)
+# left = Pin(22, Pin.IN, Pin.PULL_UP)
+# center = Pin(21, Pin.IN, Pin.PULL_UP)
+# right = Pin(20, Pin.IN, Pin.PULL_UP)
 
 # Proto buttons
-# left = Pin(16, Pin.IN, Pin.PULL_UP)
-# center = Pin(14, Pin.IN, Pin.PULL_UP)
-# right = Pin(15, Pin.IN, Pin.PULL_UP)
+left = Pin(16, Pin.IN, Pin.PULL_UP)
+center = Pin(14, Pin.IN, Pin.PULL_UP)
+right = Pin(15, Pin.IN, Pin.PULL_UP)
 
-sd = None
-vfs = None
+fs = filesystem.Filesystem()
 try:
-    sd = sdcard.SDCard(SPI(0, sck=Pin(2), mosi=Pin(3), miso=Pin(4)), Pin(1))
-    vfs = os.VfsFat(sd)
-    os.mount(vfs, "/sd")
-
-except:
-    # EPERM error if card is already mounted
-    print('SD CARD ERROR')
+    fs = filesystem.Filesystem()
+except OSError as e:
+    print('SD CARD ERROR', e)
     print('Mounted already')
 
-    sd = None
+print(fs.sd)
+os.chdir('/sd')
+# os.mkdir('/test')
+index = 0
+while len(fs.dir_items()):
+    print('enum', index, os.getcwd(), os.listdir(os.getcwd()), fs.dir_items())
+    try:
+        os.rmdir('sd')
+    except:
+        print('oops')
+        pass
+    fs.make('sd')
+    # fs.delete_dirs()
+    # os.chdir(os.getcwd() + '/sd')
+    index+=1
+    time.sleep(1)
 
+# fs.make('sd')
+# fs.delete_dirs()
+# fs.delete_files()
+print("FS ", fs.dir_items())
+print("OS " , os.getcwd())
+# fs.make('sd')
+# print('LIST DIR', fs.dir_items())
+
+# fs.make('rides')
+
+# print('LIST DIR after', os.getcwd())
+
+# print("CWD ", fs.dir_items())
+# time.sleep(4000)
+
+# os.mkdir('/rides')
+# Get a list of all files in the current directory
+files = os.listdir(os.getcwd())
+
+# for filename in files:
+#     print('FILENAME ', filename)
+#     mode = os.stat(filename)[0]
+#     print('PATH ', mode)
+#     if mode == 32768:  # This is a file
+#         print('FILE ', filename)
+#         os.remove(os.getcwd() + '/' + filename)
+#     elif mode == 16384:  # This is a directory
+#         print('DIR ', filename)
+#         # os.rmdir(filename)
+#         continue
+
+rides = os.listdir(os.getcwd())
+# for ride in rides:
+#     os.remove(ride)
+    # print(rides)
+print('CLEARED', rides)
+# for ride in rides:
+#     print('RIDE ', ride)
+#     with open(ride, 'r') as f:
+#         print(f.read())
 
     
-# def delete_directory(directory):
-#     for filename in os.ilistdir(directory):
-#         file_path = directory + '/' + filename[0]
-#         if filename[1] == 0x8000:  # This is a file
-#             os.remove(file_path)
-#         elif filename[1] == 0x4000:  # This is a directory
-#             delete_directory(file_path)
-#     os.rmdir(directory)
+def delete_directory(directory):
+    print('ENTER ', os.listdir(directory))
+    for filename in os.listdir(directory):
+        file_path = directory + '/' + filename[0]
+        print('FILE PATH ', file_path)
+        # if filename[1] == 0x8000:  # This is a file
+        #     os.remove(file_path)
+        # elif filename[1] == 0x4000:  # This is a directory
+        #     delete_directory(file_path)
+    os.rmdir(directory)
 # To list files on the SD card
 # delete_directory('/sd')
+# time.sleep(4000)
+
 # print('should be deleted')
 # with open('/sd/rides/hello.txt', 'r') as f:
 #     print(f.read())
@@ -62,12 +117,6 @@ except:
 start_time = time.ticks_ms()
 power = 0
 cadence = 0
-# Bluetooth chars
-# _REMOTE_UUID = bluetooth.UUID(0x1848)
-# _ENV_SENSE_UUID = bluetooth.UUID(0x1800) 
-# _REMOTE_CHARACTERISTICS_UUID = bluetooth.UUID(0x2A6E)
-
-# _METER_UUID = bluetooth.UUID(0x1818)
 
 connected = False
 alive = False
@@ -124,20 +173,6 @@ async def handle_bluetooth():
         connection = connection_object
         next_ctx = contexts["main"]
 
-
-# def draw_filled_circle(x0, y0, radius, color):
-#     for y in range(-radius, radius):
-#         # This is the width of the line to draw on this row
-#         # It's calculated using the Pythagorean theorem
-#         line_width = int((radius**2 - y**2)**0.5)
-#         for x in range(-line_width, line_width):
-#             display.pixel(x0 + x, y0 + y, color)
-# In ride screen, the center button should pause the ride. 
-# When the center button is pressed the ride should pause and the time should flash red or something as a visual indicator.
-# If paused and the center button is pressed again, the ride should resume, if the ride is paused and the left button is pressed,
-# the ride should stop and go to a summary screen. From there, holding (some button) should return to the main screen
-# The right button should cycle through the different ride screens
-# Should left button go back to the main screen? Maybe if i can keep the state of the ride going
 def ride():
     display.fill(0)
     display.border(display.blue, 3)
