@@ -7,20 +7,22 @@ import bluetooth
 import aioble
 import uasyncio as asyncio
 import struct
-from machine import Pin, SPI, I2C
+from machine import Pin, SPI
 import gc9a01
 import time
 import sdcard
 import os
 import ubinascii
 import math
+import gc
 
 # Hardware Initialization
 
 # GC9A01 display and related vars
 spi = SPI(1, baudrate=60000000, sck=Pin(10), mosi=Pin(11))
-# Reset pin is 16 for breadboard setup
-display = gc9a01.GC9A01(spi, 240, 240, cs=Pin(13), reset=Pin(18, Pin.OUT), dc=Pin(12, Pin.OUT))
+# Reset pin is 16 for breadboard setup and 18 for proto
+# display = gc9a01.GC9A01(spi, 240, 240, cs=Pin(13), reset=Pin(16, Pin.OUT), dc=Pin(12, Pin.OUT))
+display = gc9a01.GC9A01(spi, 240, 240, cs=Pin(13), reset=Pin(16, Pin.OUT), dc=Pin(12, Pin.OUT))
 display.init()
 display.fill(0)
 height = int(display.height())
@@ -37,33 +39,30 @@ yellow = gc9a01.color565(255, 162, 0)
 
 # Control init 
 # Breadboard buttons
-# left = Pin(22, Pin.IN, Pin.PULL_UP)
-# center = Pin(21, Pin.IN, Pin.PULL_UP)
-# right = Pin(20, Pin.IN, Pin.PULL_UP)
+left = Pin(22, Pin.IN, Pin.PULL_UP)
+center = Pin(21, Pin.IN, Pin.PULL_UP)
+right = Pin(20, Pin.IN, Pin.PULL_UP)
 
 # Proto buttons
-left = Pin(16, Pin.IN, Pin.PULL_UP)
-center = Pin(14, Pin.IN, Pin.PULL_UP)
-right = Pin(15, Pin.IN, Pin.PULL_UP)
+# left = Pin(16, Pin.IN, Pin.PULL_UP)
+# center = Pin(14, Pin.IN, Pin.PULL_UP)
+# right = Pin(15, Pin.IN, Pin.PULL_UP)
 
-# micro sd card module
-sd_spi = SPI(0, sck=Pin(2), mosi=Pin(3), miso=Pin(4))
-sd_spi.init(baudrate=5000000)
 sd = None
 vfs = None
 try:
-    sd = sdcard.SDCard(sd_spi, Pin(1))
+    sd = sdcard.SDCard(SPI(0, sck=Pin(2), mosi=Pin(3), miso=Pin(4)), Pin(1))
     vfs = os.VfsFat(sd)
     os.mount(vfs, "/sd")
 
 except:
+    # EPERM error if card is already mounted
     print('SD CARD ERROR')
     print('Mounted already')
 
     sd = None
 
 
-    # EPERM error if card is already mounted
     
 # def delete_directory(directory):
 #     for filename in os.ilistdir(directory):
@@ -84,18 +83,20 @@ except:
 
 
 start_time = time.ticks_ms()
-
+power = 0
+cadence = 0
 # Bluetooth chars
-_REMOTE_UUID = bluetooth.UUID(0x1848)
-_ENV_SENSE_UUID = bluetooth.UUID(0x1800) 
-_REMOTE_CHARACTERISTICS_UUID = bluetooth.UUID(0x2A6E)
+# _REMOTE_UUID = bluetooth.UUID(0x1848)
+# _ENV_SENSE_UUID = bluetooth.UUID(0x1800) 
+# _REMOTE_CHARACTERISTICS_UUID = bluetooth.UUID(0x2A6E)
 
-_METER_UUID = bluetooth.UUID(0x1818)
+# _METER_UUID = bluetooth.UUID(0x1818)
 
 connected = False
 alive = False
 connection = None
 skip_connection = False
+
 
 def generate_uid():
     random_number = random.getrandbits(32)
@@ -114,14 +115,22 @@ async def find_meter():
                 print('returning ', result.name())
                 return result.device
         return None
+def bluetooth_screen():
+    display.fill(0)
+    centered_text("Searching...", 100, yellow, basefont)
+    centered_text("Hold 'Right' to skip", 140, yellow, smallfont)
+    draw_circle(center_x, center_y, radius, blue, 3)
+
 
 async def handle_bluetooth():
     print('Starting peripheral task')
+    bluetooth_screen()
     global connected, connection, current_ctx, skip_connection, next_ctx
     connected = False
     device = await find_meter()
     if right.value() == 0:
         skip_connection = True
+        print('RIGHT')
         return
     if not skip_connection:
         if not device:
@@ -137,30 +146,8 @@ async def handle_bluetooth():
         connected = True
         connection = connection_object
         next_ctx = contexts["main"]
-    # async with connection:
-    #     # paired = await connection.pair()
-    #     # print('Paired:', paired)
-    #     PWR_UUID = bluetooth.UUID(0x1818)
-    #     power_service = await connection.service(PWR_UUID)
-    #     characteristic = await power_service.characteristic(bluetooth.UUID(0x2a63))
-    #     print('GOT CHAR ', characteristic)
-    #     await characteristic.subscribe(notify=True)
-    #     while True:
-    #         data = await characteristic.notified()
-    #         flags, instantaneous_power = struct.unpack('<HH', data[:4])
-    #         CRANK_REV_DATA_PRESENT = flags & (1 << 5)
-    #         if CRANK_REV_DATA_PRESENT:
-    #                 cumulative_crank_revolutions, last_crank_event_time = struct.unpack('<HH', data[4:8])
-    #                 print(f"Cumulative Crank Revolutions: {cumulative_crank_revolutions}")
-    #                 print(f"Last Crank Event Time: {last_crank_event_time} (1/1024 s)")
-    #         print(f"Flags: {flags}, Instantaneous Power: {instantaneous_power}")
-    #         previous_reading = instantaneous_power
 
-power = 0
-cadence = 0
 
-# Menu vars
-current_screen = None
 
 
 def centered_text(text, y, color=blue, font=basefont):
@@ -230,19 +217,10 @@ def history():
     print('HISTORY')
     display.fill(0)
     display.text(basefont, f"HISTORY", 10, 100, 31797)
-menu = [
-    {"option": "RIDE", "action": ride},
-    {"option": "WORKOUT", "action": ride},
-    {"option": "PAIR", "action": pair},
-    {"option": "HISTORY", "action": history}
-    ]
+
 highlightedOption = 0
 
-def select_menu(target):
-    global current_screen
-    current_screen = target
-    print('SELECTED THIS', current_screen)
-    display.fill(0)
+
 def drawBorder():
     draw_circle(center_x, center_y, radius, blue, 3)
 
@@ -251,16 +229,13 @@ def draw_menu(options):
     drawBorder()
     global highlightedOption, connected
     for index, value in enumerate(options):
-        display.text(basefont, f"{value['option']} {'<' if index == highlightedOption else ''}", 45 if index == highlightedOption else 50, 60 + index * 32, yellow if index == highlightedOption else blue)
+        display.text(basefont, f"{value['label']} {'<' if index == highlightedOption else ''}", 45 if index == highlightedOption else 50, 60 + index * 32, yellow if index == highlightedOption else blue)
         if not connected:
             display.rect(width // 2 - 10, 10, 20, 20, red)
             display.line(width // 2 - 10, 10, width // 2 + 10, 30, red)
             display.line(width // 2 + 10, 10, width // 2 - 10, 30, red)
     
 
-def select_menu():
-    current_screen['menu'][highlightedOption]['action']()
-    print('SELect ', current_screen['menu'][highlightedOption]['action'])
 def navigate(target):
     global next_ctx
     next_ctx = target
@@ -269,11 +244,6 @@ def pauseRide():
 def cycleData():
     print('CYCLE DATA')
 
-def bluetooth_screen():
-    display.fill(0)
-    centered_text("Searching...", 100, yellow, basefont)
-    centered_text("Press 'Right' to skip", 140, yellow, smallfont)
-    draw_circle(center_x, center_y, radius, blue, 3)
 
 connected = False
 
@@ -312,7 +282,7 @@ def render_menu():
     display.fill(0)
     drawBorder()
     for index, value in enumerate(current_ctx["menu"]):
-        display.text(basefont, f"{value['option']} {'<' if index == current_ctx['cur_index'] else ''}", 45 if index == current_ctx['cur_index'] else 50, 60 + index * 32, yellow if index == current_ctx['cur_index'] else blue)
+        display.text(basefont, f"{value['label']} {'<' if index == current_ctx['cur_index'] else ''}", 45 if index == current_ctx['cur_index'] else 50, 60 + index * 32, yellow if index == current_ctx['cur_index'] else blue)
         if not connected:
             display.rect(width // 2 - 10, 10, 20, 20, red)
             display.line(width // 2 - 10, 10, width // 2 + 10, 30, red)
@@ -378,15 +348,15 @@ def update_ride_screen():
         centered_text(f"{formatted_time}", 180, red, medfont)
     else:
         # Clear and redraw the power value
-        display.fill_rect(70, 70, 100, 30, 0)  # Adjust the rectangle size as needed
+        display.fill_rect(70, 70, 100, 30, 0)  
         display.text(basefont, f"{cur_power}W", 70, 70, blue)
 
         # Clear and redraw the cadence value
-        display.fill_rect(70, 120, 100, 30, 0)  # Adjust the rectangle size as needed
+        display.fill_rect(70, 120, 100, 30, 0)  
         display.text(basefont, f"{cur_cadence}RPM", 70, 120, blue)
 
         # Clear and redraw the time elapsed
-        display.fill_rect(180, 180, 100, 30, 0)  # Adjust the rectangle size as needed
+        display.fill_rect(180, 180, 100, 30, 0)  
         display.fill_rect(57, 167, 130, 48, 0)
 
         formatted_time = format_time(time_elapsed)
@@ -487,8 +457,8 @@ async def start_timer():
         if paused:
             paused_start = time.ticks_ms()
             while paused:
-                display.fill_rect(70, 70, 100, 30, 0)  # Adjust the rectangle size as needed
-                display.fill_rect(70, 120, 100, 30, 0)  # Adjust the rectangle size as needed
+                display.fill_rect(70, 70, 100, 30, 0)  
+                display.fill_rect(70, 120, 100, 30, 0)  
                 display.fill_rect(57, 167, 130, 48, 0)
                 await asyncio.sleep(.5)
                 update_ride_screen()
@@ -498,35 +468,6 @@ async def start_timer():
         else:
             time_elapsed = (time.ticks_diff(time.ticks_ms(), start_time) - paused_time) // 1000
             update_ride_screen()
-        # else:
-            # print('running')
-            # if connection:
-            #     async with connection:
-            #         PWR_UUID = bluetooth.UUID(0x1818)
-            #         power_service = await connection.service(PWR_UUID)
-            #         characteristic = await power_service.characteristic(bluetooth.UUID(0x2a63))
-            #         print('GOT CHAR ', characteristic)
-            #         await characteristic.subscribe(notify=True)
-            #         while True:
-            #             data = await characteristic.notified()
-            #             flags, instantaneous_power = struct.unpack('<HH', data[:4])
-            #             CRANK_REV_DATA_PRESENT = flags & (1 << 5)
-            #             if CRANK_REV_DATA_PRESENT:
-            #                     cumulative_crank_revolutions, last_crank_event_time = struct.unpack('<HH', data[4:8])
-            #                     print(f"Cumulative Crank Revolutions: {cumulative_crank_revolutions}")
-            #                     print(f"Last Crank Event Time: {last_crank_event_time} (1/1024 s)")
-            #             print(f"Flags: {flags}, Instantaneous Power: {instantaneous_power}")
-            #             cur_power = instantaneous_power
-            #             cur_cadence = 90
-            #             time_elapsed = (time.ticks_diff(time.ticks_ms(), start_time) - paused_time) // 1000
-
-            #             update_ride_screen()
-
-            # else:
-            #     cur_power = '-'
-            #     cur_cadence = '-'
-            # # cur_power = random.randint(100, 200)
-            # # cur_cadence = random.randint(70, 100)
             await asyncio.sleep(1)
 
 def mkdir_p(path):
@@ -651,14 +592,7 @@ def initRide():
     centered_text("PRESS", 70, yellow, medfont)
     centered_text("RIGHT TO", 100, yellow, medfont)
     centered_text("START RIDE", 130, yellow, medfont)
-    # print('UPDATE RIDE')
-    # display.fill(0)
-    # display.text(smallfont, f"POWER:", 70, 60, yellow)
-    # display.text(basefont, f"{power}W", 70, 70, blue)
-    # display.text(smallfont, f"CADENCE:", 70, 110, yellow)
-    # display.text(basefont, f"90RPM", 70, 120, blue)
-    # centered_text("2/20", 20, 31797, smallfont)
-    # centered_text("1:45:23", 180, green, medfont)
+
 def skip_bluetooth():
     global skip_connection
     skip_connection = True
@@ -695,6 +629,15 @@ async def history_browser():
         # await asyncio.sleep(.2)
 
 
+# This handles the structure for the menu and navigation of the application.
+# Each context resembles a screen or a state of the application and has the following characteristics:
+        # 1) If it is navigable and has sub menus, it will have a "cur_index" for tracking highlighted
+        # options for selection, and well as a corresponding "menu" list for the further navigation options.
+        # Option objects within this list will have an "label" key for the label of the option, an "action" key corresponding
+        # to the function that should execute when the option is selected, and a "target" key for the next context to navigate to.
+        # 2) an "entry" list for functions that should execute when the context is entered
+        # 3) a "tasks" list for async functions that should run in the background while the context is active
+        # 4) an "actions" object for mapping the physical buttons to actions that should execute when the buttons are pressed in this context.
 contexts = {
     "main": {
         "cur_index": 0,
@@ -706,10 +649,10 @@ contexts = {
             drawBorder,
         ],
         "menu": [
-            {"option": "RIDE", "action": ride, "target": "start_ride"},
-            {"option": "WORKOUT", "action": workout, "target": "workout"},
-            {"option": "PAIR", "action": pair, "target": "pair"},
-            {"option": "HISTORY", "action": history, "target": "history"}
+            {"label": "RIDE", "action": ride, "target": "start_ride"},
+            {"label": "WORKOUT", "action": workout, "target": "workout"},
+            {"label": "PAIR", "action": pair, "target": "pair"},
+            {"label": "HISTORY", "action": history, "target": "history"}
         ],
         "actions": {
             "left": lambda: scroll_menu('up'),
@@ -745,10 +688,10 @@ contexts = {
     "workout": {
         "cur_index": 0,
         "menu": [
-            {"option": "SHOWOO", "action": ride, "target": "ride"},
-            {"option": "BAKOO", "action": workout, "target": "main"},
-            {"option": "SDFHIH", "action": pair, "target": "main"},
-            {"option": "NSDFK", "action": history, "target": "main"}
+            {"label": "SHOWOO", "action": ride, "target": "ride"},
+            {"label": "BAKOO", "action": workout, "target": "main"},
+            {"label": "SDFHIH", "action": pair, "target": "main"},
+            {"label": "NSDFK", "action": history, "target": "main"}
         ],
         "tasks": [command_handler],
         "entry": [render_menu],
@@ -794,68 +737,43 @@ contexts = {
     }
 }
 
-
-async def bluetooth_scan():
-    global current_ctx, next_ctx, connected, skip_connection
-    current_ctx = contexts["init"]
-    tasks = []
-    if not connected and skip_connection is False:
-        bluetooth_screen()
-        tasks = [
-            asyncio.create_task(handle_bluetooth()),
-            asyncio.create_task(command_handler())
-        ]
-        await asyncio.gather(*tasks) 
-
-async def main():
-        draw_menu(contexts["main"]["menu"])
-        current_ctx = None
-        previous_ctx = None
-        # if 
-        # for task in tasks:
-        #     task.cancel()
-        next_ctx = None
-        while True:
-            if next_ctx != current_ctx:
-                print('NEW CTX')
-                # if "tasks" in previous_ctx:
-                # for task in tasks:
-                #     task.cancel()
-                tasks = []
-                current_ctx = next_ctx
-                # print('CURR ', current_ctx)
-                for task in current_ctx["tasks"]:
-                    tasks.append(asyncio.create_task(task()))
-                if "entry" in current_ctx:
-                    for entry in current_ctx["entry"]:
-                        entry()
-            await asyncio.sleep_ms(150)
-        await asyncio.gather(*tasks)
+gc.collect()
 async def main_loop():
-    global current_ctx, next_ctx, connected, skip_connection
     while True:
-        # Comment out this piece to omit the bt scan
+        global current_ctx, next_ctx, connected, skip_connection
+        # Either enter bluetooth scan or main loop
         if not skip_connection and not connected:
             bluetooth_screen()
             await handle_bluetooth()
         else:
-            print('init main')
             draw_menu(contexts["main"]["menu"])
             current_ctx = None
+            tasks = []
+            # Main loop works like this:
+            # Set the intial value for the next context to be the main screen.
+            # If the next context is different from the current context, cancel
+            # all of the current running tasks from the current context and
+            # start new async tasks for the new context. Additionally, execute
+            # any entry functions for the new context. Entry functions handle things
+            # like rendering the initial screen for a context.
             next_ctx = contexts["main"]
             while True:
                 global current_ctx, next_ctx, connected, skip_connection
                 if next_ctx != current_ctx:
-                    # print('NEW CTX', next_ctx)
                     try:
-                        if current_ctx is not None and "tasks" in current_ctx:
+                        if len(tasks) > 0:
                             for task in tasks:
                                 task.cancel()
+                                print('CANCELLED')
+                            tasks = []
+                            print('BEFORE ', gc.mem_free())
+                            gc.collect()
+                            print('AFTER ', gc.mem_free())
+
                     except:
-                        print('Something with cancel')
-                    tasks = []
+                        print('Task threw an exception on exit')
+                    # tasks = []
                     current_ctx = next_ctx
-                    # print('CURR ', current_ctx)
                     if "tasks" in current_ctx:
                         for task in current_ctx["tasks"]:
                             tasks.append(asyncio.create_task(task()))
