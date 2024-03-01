@@ -1,43 +1,20 @@
-import sysfont
-import smallfont
-import medfont
 import random
-import basefont
 import bluetooth
 import aioble
 import uasyncio as asyncio
 import struct
 from machine import Pin, SPI
-import gc9a01
 import time
 import sdcard
 import os
 import ubinascii
 import math
 import gc
+import displaywrapper
 
 # Hardware Initialization
+display = displaywrapper.DisplayWrapper()
 
-# GC9A01 display and related vars
-spi = SPI(1, baudrate=60000000, sck=Pin(10), mosi=Pin(11))
-# Reset pin is 16 for breadboard setup and 18 for proto
-# display = gc9a01.GC9A01(spi, 240, 240, cs=Pin(13), reset=Pin(16, Pin.OUT), dc=Pin(12, Pin.OUT))
-display = gc9a01.GC9A01(spi, 240, 240, cs=Pin(13), reset=Pin(16, Pin.OUT), dc=Pin(12, Pin.OUT))
-display.init()
-display.fill(0)
-height = int(display.height())
-width = int(display.width())
-center_x = width // 2
-center_y = height // 2
-radius = min(center_x, center_y) - 1
-#  Color definitions
-green = gc9a01.color565(43, 147, 72)
-blue = gc9a01.color565(18, 69, 89)
-red = gc9a01.color565(255, 0, 0)
-yellow = gc9a01.color565(255, 162, 0)
-
-
-# Control init 
 # Breadboard buttons
 left = Pin(22, Pin.IN, Pin.PULL_UP)
 center = Pin(21, Pin.IN, Pin.PULL_UP)
@@ -117,9 +94,9 @@ async def find_meter():
         return None
 def bluetooth_screen():
     display.fill(0)
-    centered_text("Searching...", 100, yellow, basefont)
-    centered_text("Hold 'Right' to skip", 140, yellow, smallfont)
-    draw_circle(center_x, center_y, radius, blue, 3)
+    display.centered_text("Searching...", 100, display.yellow, display.basefont)
+    display.centered_text("Hold 'Right' to skip", 140, display.yellow, display.smallfont)
+    display.draw_circle(display.blue, 3)
 
 
 async def handle_bluetooth():
@@ -148,46 +125,13 @@ async def handle_bluetooth():
         next_ctx = contexts["main"]
 
 
-
-
-def centered_text(text, y, color=blue, font=basefont):
-    char_width = 8 if font == smallfont else 15
-    x = (display.width() - len(text) * char_width) // 2
-    display.text(font, text, x, y, color)
-
-def draw_circle(x0, y0, radius, color, thickness=1):
-    for r in range(radius, radius - thickness, -1):
-        x = r
-        y = 0
-        err = 0
-
-        while x >= y:
-            display.pixel(x0 + x, y0 + y, color)
-            display.pixel(x0 + y, y0 + x, color)
-            display.pixel(x0 - y, y0 + x, color)
-            display.pixel(x0 - x, y0 + y, color)
-            display.pixel(x0 - x, y0 - y, color)
-            display.pixel(x0 - y, y0 - x, color)
-            display.pixel(x0 + y, y0 - x, color)
-            display.pixel(x0 + x, y0 - y, color)
-
-            if err <= 0:
-                y += 1
-                err += 2*y + 1
-            if err > 0:
-                x -= 1
-                err -= 2*x + 1
-
-def drawBorder():
-    draw_circle(center_x, center_y, radius, blue, 3)
-
-def draw_filled_circle(x0, y0, radius, color):
-    for y in range(-radius, radius):
-        # This is the width of the line to draw on this row
-        # It's calculated using the Pythagorean theorem
-        line_width = int((radius**2 - y**2)**0.5)
-        for x in range(-line_width, line_width):
-            display.pixel(x0 + x, y0 + y, color)
+# def draw_filled_circle(x0, y0, radius, color):
+#     for y in range(-radius, radius):
+#         # This is the width of the line to draw on this row
+#         # It's calculated using the Pythagorean theorem
+#         line_width = int((radius**2 - y**2)**0.5)
+#         for x in range(-line_width, line_width):
+#             display.pixel(x0 + x, y0 + y, color)
 # In ride screen, the center button should pause the ride. 
 # When the center button is pressed the ride should pause and the time should flash red or something as a visual indicator.
 # If paused and the center button is pressed again, the ride should resume, if the ride is paused and the left button is pressed,
@@ -196,44 +140,40 @@ def draw_filled_circle(x0, y0, radius, color):
 # Should left button go back to the main screen? Maybe if i can keep the state of the ride going
 def ride():
     display.fill(0)
-    drawBorder(center_x, center_y, radius, blue, 3)
-    display.text(smallfont, f"POWER:", 70, 60, yellow)
-    display.text(basefont, f"{power}W", 70, 70, blue)
-    display.text(smallfont, f"CADENCE:", 70, 110, yellow)
-    display.text(basefont, f"90RPM", 70, 120, blue)
-    centered_text("2/20", 20, 31797, smallfont)
-    centered_text("1:45:23", 180, green, medfont)
+    display.border(display.blue, 3)
+    display.text(display.smallfont, f"POWER:", 70, 60, display.yellow)
+    display.text(display.basefont, f"{power}W", 70, 70, display.blue)
+    display.text(display.smallfont, f"CADENCE:", 70, 110, display.yellow)
+    display.text(display.basefont, f"90RPM", 70, 120, display.blue)
+    display.centered_text("2/20", 20, 31797, display.smallfont)
+    display.centered_text("1:45:23", 180, display.green, display.medfont)
 
 def workout():
     print('RIDE')
     display.fill(0)
-    display.text(basefont, f"Select workout", 10, 100, 31797)
+    display.text(display.basefont, f"Select workout", 10, 100, 31797)
 
 def pair():
     print('PAIR')
     display.fill(0)
-    display.text(basefont, f"PAIR", 10, 100, 31797)
+    display.text(display.basefont, f"PAIR", 10, 100, 31797)
 def history():
     print('HISTORY')
     display.fill(0)
-    display.text(basefont, f"HISTORY", 10, 100, 31797)
+    display.text(display.basefont, f"HISTORY", 10, 100, 31797)
 
 highlightedOption = 0
 
 
-def drawBorder():
-    draw_circle(center_x, center_y, radius, blue, 3)
 
 def draw_menu(options):
     display.fill(0)
-    drawBorder()
+    display.border()
     global highlightedOption, connected
     for index, value in enumerate(options):
-        display.text(basefont, f"{value['label']} {'<' if index == highlightedOption else ''}", 45 if index == highlightedOption else 50, 60 + index * 32, yellow if index == highlightedOption else blue)
+        display.text(display.basefont, f"{value['label']} {'<' if index == highlightedOption else ''}", 45 if index == highlightedOption else 50, 60 + index * 32, display.yellow if index == highlightedOption else display.blue)
         if not connected:
-            display.rect(width // 2 - 10, 10, 20, 20, red)
-            display.line(width // 2 - 10, 10, width // 2 + 10, 30, red)
-            display.line(width // 2 + 10, 10, width // 2 - 10, 30, red)
+            display.bluetooth_disconnect()
     
 
 def navigate(target):
@@ -280,13 +220,12 @@ async def update_menu():
 def render_menu():
     global current_ctx, connected
     display.fill(0)
-    drawBorder()
+    display.border()
     for index, value in enumerate(current_ctx["menu"]):
-        display.text(basefont, f"{value['label']} {'<' if index == current_ctx['cur_index'] else ''}", 45 if index == current_ctx['cur_index'] else 50, 60 + index * 32, yellow if index == current_ctx['cur_index'] else blue)
+        display.text(display.basefont, f"{value['label']} {'<' if index == current_ctx['cur_index'] else ''}", 45 if index == current_ctx['cur_index'] else 50, 60 + index * 32, display.yellow if index == current_ctx['cur_index'] else display.blue)
         if not connected:
-            display.rect(width // 2 - 10, 10, 20, 20, red)
-            display.line(width // 2 - 10, 10, width // 2 + 10, 30, red)
-            display.line(width // 2 + 10, 10, width // 2 - 10, 30, red)
+            display.bluetooth_disconnect()
+
 
 def scroll_menu(dir="down"):
     print('SCROLL')
@@ -297,7 +236,7 @@ def scroll_menu(dir="down"):
 def navigate(target):
     global next_ctx
     display.fill(0)
-    drawBorder()
+    display.border()
     next_ctx = contexts[target]
 
 def select():
@@ -341,26 +280,26 @@ def format_time(elapsed_seconds):
 def update_ride_screen():
     global time_elapsed, cur_power, cur_cadence, paused
     if paused:
-        display.text(basefont, f"-W", 70, 70, blue)
-        display.text(basefont, f"-RPM", 70, 120, blue)
+        display.text(display.basefont, f"-W", 70, 70, display.blue)
+        display.text(display.basefont, f"-RPM", 70, 120, display.blue)
         formatted_time = format_time(time_elapsed)
-        centered_text("PAUSED", 170, red, smallfont)
-        centered_text(f"{formatted_time}", 180, red, medfont)
+        display.centered_text("PAUSED", 170, display.red, display.smallfont)
+        display.centered_text(f"{formatted_time}", 180, display.red, display.medfont)
     else:
         # Clear and redraw the power value
         display.fill_rect(70, 70, 100, 30, 0)  
-        display.text(basefont, f"{cur_power}W", 70, 70, blue)
+        display.text(display.basefont, f"{cur_power}W", 70, 70, display.blue)
 
         # Clear and redraw the cadence value
         display.fill_rect(70, 120, 100, 30, 0)  
-        display.text(basefont, f"{cur_cadence}RPM", 70, 120, blue)
+        display.text(display.basefont, f"{cur_cadence}RPM", 70, 120, display.blue)
 
         # Clear and redraw the time elapsed
         display.fill_rect(180, 180, 100, 30, 0)  
         display.fill_rect(57, 167, 130, 48, 0)
 
         formatted_time = format_time(time_elapsed)
-        centered_text(f"{formatted_time}", 180, green, medfont)
+        display.centered_text(f"{formatted_time}", 180, display.green, display.medfont)
 async def receive_data():
     global cur_power, cur_cadence, connection, paused
     previous_crank_time = None
@@ -500,8 +439,8 @@ def mkdir_p(path):
 def saveRide(data):
     print('SAVING RIDE')
     display.fill(0)
-    drawBorder()
-    centered_text("SAVING RIDE DATA...", 100, yellow, medfont)
+    display.border()
+    display.centered_text("SAVING RIDE DATA...", 100, display.yellow, display.medfont)
     uid = generate_uid()
     os.chdir('/sd')
     print('CURR DIR', os.getcwd())
@@ -557,15 +496,15 @@ async def summary_handler():
             print('START ', start)
             display.fill(0)  # Clear the display
             num_presses = math.ceil(len(data_points) / 3.0) + 1
-            centered_text("SUMMARY", 20, yellow, smallfont)
+            display.centered_text("SUMMARY", 20, display.yellow, display.smallfont)
             for i in range(start, min(start + 3, len(data_points))):  # Display three data points at a time
                 point = data_points[i]
-                display.text(smallfont, f"{point['name']}", 50, 50 + (i - start) * 50, yellow)
-                display.text(medfont, f"{point['value']}", 40, 60 + (i - start) * 50, blue)   
+                display.text(display.smallfont, f"{point['name']}", 50, 50 + (i - start) * 50, display.yellow)
+                display.text(display.medfont, f"{point['value']}", 40, 60 + (i - start) * 50, display.blue)   
                     # Draw a filled in circle
             for j in range(num_presses):  # Draw three dots
                 print('J ', j)
-                draw_filled_circle(20, 100 + j * 20, 5, green if j == start else blue)  
+                display.draw_filled_circle(20, 100 + j * 20, 5, display.green if j == start else display.blue)  
 
             update = False
         await asyncio.sleep_ms(150)
@@ -576,10 +515,10 @@ def startRide():
     print('STATR RIDE')
     global next_ctx
     display.fill(0)
-    display.text(smallfont, f"POWER:", 70, 60, yellow)
-    display.text(smallfont, f"CADENCE:", 70, 110, yellow)
-    # centered_text("2/20", 20, 31797, smallfont)
-    drawBorder()
+    display.text(display.smallfont, f"POWER:", 70, 60, display.yellow)
+    display.text(display.smallfont, f"CADENCE:", 70, 110, display.yellow)
+    # display.centered_text("2/20", 20, 31797, display.smallfont)
+    display.border()
     next_ctx = contexts["ride"]
 
 def goBack():
@@ -588,10 +527,10 @@ def goBack():
     # draw_menu(screens["main"]["menu"])
 def initRide():
     display.fill(0)
-    drawBorder()
-    centered_text("PRESS", 70, yellow, medfont)
-    centered_text("RIGHT TO", 100, yellow, medfont)
-    centered_text("START RIDE", 130, yellow, medfont)
+    display.border()
+    display.centered_text("PRESS", 70, display.yellow, display.medfont)
+    display.centered_text("RIGHT TO", 100, display.yellow, display.medfont)
+    display.centered_text("START RIDE", 130, display.yellow, display.medfont)
 
 def skip_bluetooth():
     global skip_connection
@@ -603,15 +542,15 @@ def textScroll(dir = 'down'):
 
 def showSummary():
     display.fill(0)
-    drawBorder()
-    centered_text("RIDE", 15, yellow, smallfont)
-    centered_text("SUMMARY", 30, yellow, smallfont)
-    display.text(smallfont, f"AVG POWER", 40, 50, red)
-    display.text(medfont, f"175W", 30, 65, blue)
-    display.text(smallfont, f"AVG CADENCE", 20, 110, red)
-    display.text(sysfont, f"90RPM", 25, 125, blue)
-    display.text(smallfont, f"DISTANCE", 40, 160, red)
-    display.text(medfont, f"15.3 MI", 50, 175, blue)
+    display.border()
+    display.centered_text("RIDE", 15, display.yellow, display.smallfont)
+    display.centered_text("SUMMARY", 30, display.yellow, display.smallfont)
+    display.text(display.smallfont, f"AVG POWER", 40, 50, display.red)
+    display.text(display.medfont, f"175W", 30, 65, display.blue)
+    display.text(display.smallfont, f"AVG CADENCE", 20, 110, display.red)
+    display.text(display.sysfont, f"90RPM", 25, 125, display.blue)
+    display.text(display.smallfont, f"DISTANCE", 40, 160, display.red)
+    display.text(display.medfont, f"15.3 MI", 50, 175, display.blue)
 
 async def history_browser():
     display.fill(0)
@@ -622,8 +561,8 @@ async def history_browser():
     files = os.listdir(os.getcwd())
     for i, file in enumerate(files):
         print('FILE ', file.replace('.csv', ''))
-        centered_text(f"{file.replace('.csv', '')}", 20 + i * 20, 31797, smallfont)
-        # display.text(smallfont, f"{file.replace('.csv', '')}", 50, 20 + i * 20, 31797)
+        display.centered_text(f"{file.replace('.csv', '')}", 20 + i * 20, 31797, display.smallfont)
+        # display.text(display.smallfont, f"{file.replace('.csv', '')}", 50, 20 + i * 20, 31797)
         # with open(file, 'r') as f:
         #     print(f.read())
         # await asyncio.sleep(.2)
@@ -646,7 +585,7 @@ contexts = {
             update_menu
         ],
         "entry": [
-            drawBorder,
+            display.border,
         ],
         "menu": [
             {"label": "RIDE", "action": ride, "target": "start_ride"},
